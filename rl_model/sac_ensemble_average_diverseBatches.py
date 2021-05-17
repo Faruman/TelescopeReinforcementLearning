@@ -224,7 +224,7 @@ class SAC(object):
         alpha_tlogs_value_list = []
 
         for epoch in range(num_epochs):
-            for i, (state_batch, action_batch, next_state_batch, reward_batch) in enumerate(tqdm(memory, desc= "Train")):
+            for i, (state_batch, action_batch, next_state_batch, reward_batch, shard_batch) in enumerate(tqdm(memory, desc= "Train")):
                 # shuffle does work
                 #if i == 0:
                 #    print(state_batch)

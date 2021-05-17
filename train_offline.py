@@ -4,7 +4,9 @@ from collections import deque
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-from rl_model.sac_ensemble_average_diverseBatches_sameDataset import SAC as AGENT
+#from rl_model.sac_ensemble_average_diverseBatches_sameDataset import SAC as AGENT
+from rl_model.sac_ensemble_average_diverseBatches import SAC as AGENT
+#from rl_model.sac_ensemble_average_equalBatches import SAC as AGENT
 from tensorboardX import SummaryWriter
 
 from tempfile import mkdtemp
