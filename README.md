@@ -107,38 +107,38 @@ To evaluate the offline reinforcement learning algorithm was trained with the da
 ###### 2m models
 | Model             | Data   | number of critics | Epoch  | Score  |
 |-------------------|--------|-------------------|--------|--------|
-| 0) simple SAC | 1) | 1 | 50 | 0.44425 |
-| 0) simple SAC | 2) | 1 | 50 | 0.93372 |
-| 0) simple SAC | 1) + 2) | 1 | 50 | 0.93439 |
+| 0) simple SAC | i) | 1 | 50 | 0.44425 |
+| 0) simple SAC | ii) | 1 | 50 | 0.93372 |
+| 0) simple SAC | i) + ii) | 1 | 50 | 0.93439 |
 | |
-| 3) separated SACs | 1) - 5) | 5 | 3 | 0.593436 |
-| 3) separated SACs | 1) - 5) | 5 | 15 | 0.922587 |
-| 3) separated SACs | 1) - 5) | 5 | 27 | 0.931105 |
+| 3) separated SACs | i) - v) | 5 | 3 | 0.593436 |
+| 3) separated SACs | i) - v) | 5 | 15 | 0.922587 |
+| 3) separated SACs | i) - v) | 5 | 27 | 0.931105 |
 | |
-| 3) separated SACs | 1) - 5) | 10 | 3 | 0.113553 |
-| 3) separated SACs | 1) - 5) | 10 | 15 | 0.914321 |
+| 3) separated SACs | i) - v) | 10 | 3 | 0.113553 |
+| 3) separated SACs | i) - v) | 10 | 15 | 0.914321 |
 | |
-| 3) separated SACs | 1) | 5 | 10 | 0.677788 |
-| 3) separated SACs | 1) | 5 | 30 | 0.656674 |
-| 3) separated SACs | 1) | 5 | 50 | 0.4549 |
+| 3) separated SACs | i) | 5 | 10 | 0.677788 |
+| 3) separated SACs | i) | 5 | 30 | 0.656674 |
+| 3) separated SACs | i) | 5 | 50 | 0.4549 |
 | |
-| 3) separated SACs | 1) | 10 | 10 | 0.590541 |
-| 3) separated SACs | 1) | 10 | 30 | 0.272173 |
-| 3) separated SACs | 1) | 10 | 50 | 0.134398 |
+| 3) separated SACs | i) | 10 | 10 | 0.590541 |
+| 3) separated SACs | i) | 10 | 30 | 0.272173 |
+| 3) separated SACs | i) | 10 | 50 | 0.134398 |
 | |
 
 
 ###### 4m models
 | Model             | Data   | number of critics | Epoch  | Score  |
 |-------------------|--------|-------------------|--------|--------|
-| 3) separated SACs | 1) | 5 | 3 | 0.734591 |
-| 3) separated SACs | 1) | 5 | 15 | 0.223822 |
-| 3) separated SACs | 1) | 5 | 27 | 0.573245 |
-| 3) separated SACs | 1) | 5 | 48 | 0.700478 |
+| 3) separated SACs | i) | 5 | 3 | 0.734591 |
+| 3) separated SACs | i) | 5 | 15 | 0.223822 |
+| 3) separated SACs | i) | 5 | 27 | 0.573245 |
+| 3) separated SACs | i) | 5 | 48 | 0.700478 |
 | |
-| 3) separated SACs | 1) | 10 | 3 | 0.647786 |
-| 3) separated SACs | 1) | 10 | 15 | 0.607662 |
-| 3) separated SACs | 1) | 10 | 27 | 0.705842 |
-| 3) separated SACs | 1) | 10 | 48 | 0.634988 |
+| 3) separated SACs | i) | 10 | 3 | 0.647786 |
+| 3) separated SACs | i) | 10 | 15 | 0.607662 |
+| 3) separated SACs | i) | 10 | 27 | 0.705842 |
+| 3) separated SACs | i) | 10 | 48 | 0.634988 |
 | |
 
