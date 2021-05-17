@@ -5,3 +5,6 @@ bin/
 data/
 output/
 wandb/
+
+old/
+rl_model/old/
