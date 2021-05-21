@@ -97,6 +97,7 @@ Different data was used to train the offline RL algorithms. These data diffenter
     6) replay_11_2m_fabian_noise_mu_0_sigma_01
     7) replay_11_2m_fabian_noise_mu_0_sigma_03
     8) replay_11_2m_fabian_noise_mu_0_sigma_05
+    9) replay_11_2m_fabian_noise_random_uniform
 
 + 4m
     1) 4m_20x20_replay
@@ -125,6 +126,14 @@ To evaluate the offline reinforcement learning algorithm was trained with the da
 | 3) separated SACs | i) | 10 | 10 | 0.590541 |
 | 3) separated SACs | i) | 10 | 30 | 0.272173 |
 | 3) separated SACs | i) | 10 | 50 | 0.134398 |
+| |
+| 3) separated SACs | vi) - xi) | 5 | 10 | -- |
+| 3) separated SACs | vi) - xi) | 5 | 30 | -- |
+| 3) separated SACs | vi) - xi) | 5 | 50 | -- |
+| |
+| 3) separated SACs | vi) - xi) | 10 | 10 | -- |
+| 3) separated SACs | vi) - xi) | 10 | 30 | -- |
+| 3) separated SACs | vi) - xi) | 10 | 50 | -- |
 | |
 
 
