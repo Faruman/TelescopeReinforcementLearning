@@ -127,15 +127,13 @@ To evaluate the offline reinforcement learning algorithm was trained with the da
 | 3) separated SACs | i) | 10 | 30 | 0.272173 |
 | 3) separated SACs | i) | 10 | 50 | 0.134398 |
 | |
-| 3) separated SACs | vi) - xi) | 5 | 3 | -- |
-| 3) separated SACs | vi) - xi) | 5 | 15 | -- |
-| 3) separated SACs | vi) - xi) | 5 | 27 | -- |
-| 3) separated SACs | vi) - xi) | 5 | 48 | -- |
+| 3) separated SACs | vi) - xi) | 5 | 3 | 0.861321 |
+| 3) separated SACs | vi) - xi) | 5 | 27 | 0.912929 |
+| 3) separated SACs | vi) - xi) | 5 | 48 | 0.918034 |
 | |
-| 3) separated SACs | vi) - xi) | 10 | 3 | -- |
-| 3) separated SACs | vi) - xi) | 10 | 15 | -- |
-| 3) separated SACs | vi) - xi) | 10 | 27 | -- |
-| 3) separated SACs | vi) - xi) | 10 | 48 | -- |
+| 3) separated SACs | vi) - xi) | 10 | 3 | 0.846939 |
+| 3) separated SACs | vi) - xi) | 10 | 27 | 0.910453 |
+| 3) separated SACs | vi) - xi) | 10 | 48 | 0.91556 |
 | |
 
 
