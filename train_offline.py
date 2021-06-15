@@ -4,10 +4,10 @@ from collections import deque
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-#from rl_model.sac_ensemble_average_diverseBatches_sameDataset import SAC as AGENT
+from rl_model.sac_ensemble_average_diverseBatches_sameDataset import SAC as AGENT
 #from rl_model.sac_ensemble_average_diverseBatches import SAC as AGENT
 #from rl_model.sac_ensemble_average_equalBatches import SAC as AGENT
-from rl_model.sac_simple import SAC as AGENT
+#from rl_model.sac_simple import SAC as AGENT
 from tensorboardX import SummaryWriter
 
 from tempfile import mkdtemp
@@ -20,7 +20,7 @@ import wandb
 
 class Dataset(torch.utils.data.Dataset):
   'Characterizes a dataset for PyTorch'
-  def __init__(self, replay_paths, temp_folder_path, number_of_shards, raw_input= False):
+  def __init__(self, replay_paths, temp_folder_path, number_of_shards, raw_input= False, data_per_shard= False):
         'Initialization'
         self.paths = []
         self.shape = {}
@@ -28,7 +28,9 @@ class Dataset(torch.utils.data.Dataset):
         if not os.path.exists(temp_folder_path):
             os.makedirs(temp_folder_path)
         self.temp_path = temp_folder_path
-        self.memmaps = {"state": [], "action": [], "next_state": [], "reward": [], "shard": []}
+        self.memmaps = {"state": [], "action": [], "next_state": [], "reward": []}
+        self.shard = np.array([[]])
+        self.data_per_shard = data_per_shard
 
         self.paths.extend([replay_path for replay_path in replay_paths])
         #self.paths.extend([replay_path + "_episode_" + str(1000) for replay_path in replay_paths])
@@ -39,14 +41,34 @@ class Dataset(torch.utils.data.Dataset):
             #print([x[0] for x in list(folder.items())])
             if raw_input:
                 commands, measurements, reward, action = [x[1] for x in list(folder.items())]
-                commands_t1 = commands[1:-1]
-                commands_t2 = commands[:-2]
-                state = np.column_stack((measurements[2:], commands[2:], commands_t1, commands_t2))
-                action = action[2:-1]
-                # TODO: Needs to be shifted according to delay (2 timesteps)
-                reward = reward[2:-1]
-                next_state = state[1:]
-                state = state[:-1]
+                # transform shape: [experience, steps, features]
+                commands = commands.reshape((int(commands.shape[0] / 1000), 1000, commands.shape[1]))
+                measurements = measurements.reshape((int(measurements.shape[0] / 1000), 1000, measurements.shape[1]))
+                reward = reward.reshape((int(reward.shape[0] / 1000), 1000))
+                action = action.reshape((int(action.shape[0] / 1000), 1000, action.shape[1]))
+
+                commands_t1 = commands[:, 2:-1, :]
+                #commands_t1 = commands_t1.reshape((commands_t1.shape[0]*commands_t1.shape[1], commands_t1.shape[2]))
+                commands_t2 = commands[:, 1:-2, :]
+                #commands_t2 = commands_t2.reshape((commands_t2.shape[0] * commands_t2.shape[1], commands_t2.shape[2]))
+                commands_t3 = commands[:, :-3, :]
+                #commands_t3 = commands_t3.reshape((commands_t3.shape[0] * commands_t3.shape[1], commands_t3.shape[2]))
+
+                measurements = measurements[:, 3:, :]
+                #measurements = measurements.reshape((measurements.shape[0] * measurements.shape[1], measurements.shape[2]))
+
+                state = np.stack((measurements, commands_t1, commands_t2, commands_t3), axis=2).reshape(measurements.shape[0], measurements.shape[1], measurements.shape[2] + commands_t1.shape[2] + commands_t2.shape[2] + commands_t3.shape[2])
+                #state = np.column_stack((measurements, commands_t1, commands_t2, commands_t3))
+
+                # shifted according to delay (2 timesteps)
+                action = action[:, 1:-3, :]
+                action = action.reshape((action.shape[0] * action.shape[1], action.shape[2]))
+
+                reward = reward[:, 1:-3]
+                reward = reward.reshape((reward.shape[0] * reward.shape[1]))
+
+                next_state = state[:, 1:, :].reshape((state.shape[0] * (state.shape[1]-1), state.shape[2]))
+                state = state[:, :-1, :].reshape((state.shape[0] * (state.shape[1]-1), state.shape[2]))
                 folder = [("state", state), ("action", action), ("reward", reward), ("next_state", next_state)]
             else:
                 folder = folder.items()
@@ -62,10 +84,6 @@ class Dataset(torch.utils.data.Dataset):
                     self.shape[name] = item.shape[1]
                 else:
                     self.shape[name] = 1
-            self.memmaps["shard"].append([])
-            self.memmaps["shard"][i] = np.memmap(os.path.join(self.temp_path, os.path.basename(path)) + "_shard.dat", dtype='float32', mode='w+', shape=(self.index[i + 1], 1))
-            self.memmaps["shard"][i][:] = np.expand_dims(np.random.choice(number_of_shards, self.index[i + 1]), 1)
-            self.memmaps["shard"][i].flush()
 
         if raw_input:
             state_mean = np.mean(np.row_stack([np.mean(x, axis= 0) for x in self.memmaps["state"]]), axis= 0)
@@ -77,25 +95,36 @@ class Dataset(torch.utils.data.Dataset):
             print(np.mean(np.row_stack([np.mean(x, axis= 0) for x in self.memmaps["state"]]), axis= 0))
             state_std = np.row_stack([np.mean(np.square(x - state_mean), axis=0) for x in self.memmaps["state"]])
             print(np.sqrt(np.mean(state_std, axis=0) / state_std.shape[0]))
+
+        if data_per_shard:
+            self.meta_index = np.random.choice(self.index[-1], size= int(self.index[-1] * number_of_shards * self.data_per_shard), replace=True)
+            self.shard = np.random.choice(number_of_shards, size= int(self.index[-1] * number_of_shards * self.data_per_shard), replace=True)
+        else:
+            self.shard = np.random.choice(number_of_shards, size= self.index[-1], replace=True)
+
   def __len__(self):
         'Denotes the total number of samples'
-        return self.index[-1]
+        if self.data_per_shard:
+            return self.meta_index.shape[0]
+        else:
+            return self.index[-1]
 
   def __getitem__(self, index):
         'Generates one sample of data'
         # Select right path
-
-        # TODO: implement retrieval of samples based on agent
-
-        sample_idx = np.argmax(self.index > index) - 1
-        index = index - self.index[sample_idx]
+        if self.data_per_shard:
+            sample_idx = np.argmax(self.index > self.meta_index[index]) - 1
+            subindex = self.meta_index[index] - self.index[sample_idx]
+        else:
+            sample_idx = np.argmax(self.index > index) - 1
+            subindex = index - self.index[sample_idx]
 
         # Load data and get label
-        state = self.memmaps["state"][sample_idx][index]
-        action = self.memmaps["action"][sample_idx][index]
-        next_state = self.memmaps["next_state"][sample_idx][index]
-        reward = np.array(self.memmaps["reward"][sample_idx][index])
-        shard = np.array(self.memmaps["shard"][sample_idx][index])
+        state = self.memmaps["state"][sample_idx][subindex]
+        action = self.memmaps["action"][sample_idx][subindex]
+        next_state = self.memmaps["next_state"][sample_idx][subindex]
+        reward = np.array(self.memmaps["reward"][sample_idx][subindex])
+        shard = self.shard[index]
         return state, action, next_state, reward, shard
 
 
@@ -147,7 +176,8 @@ class TrainerOffline:
                  experiment_name,
                  writer,
                  env_name,
-                 raw_input = False
+                 raw_input = False,
+                 data_per_shard= False
                  ):
         """
         replay_paths: list of replay paths
@@ -157,7 +187,7 @@ class TrainerOffline:
         """
         self.env_name = env_name
 
-        train_dataset = Dataset(replay_paths, "./temp/", config.sac['size_ensemble'], raw_input= raw_input)
+        train_dataset = Dataset(replay_paths, "./temp/", config.sac['size_ensemble'], raw_input= raw_input, data_per_shard= data_per_shard)
 
         self.agent = AGENT(num_inputs= train_dataset.shape["state"],
                            num_actions=  train_dataset.shape["action"],
@@ -248,15 +278,18 @@ conf = Config()
 # train model on data from the simple agent
 base_path = r"./data/"
 rep_paths = [
-            r"replay_4_Fabian_noise_mf_2_5_sigma_05_episode_1000",
-            r"replay_11_2m_fabian_noise_mu_0_sigma_01_episode_2000-002"
+            r"pure_dataset_4_pure_dataset_noise_mu_0_sigma_01_episode_1000",
             ]
 rep_paths = [base_path + rep_path for rep_path in rep_paths]
+
 trainer = TrainerOffline(replay_paths=rep_paths,
                          experiment_name=exp_name,
                          config=conf,
                          writer=writ,
                          env_name= "sac_ensemble_2m_{}".format(exp_name),
-                         raw_input= True)
+                         raw_input= True,
+                         data_per_shard = False
+                         )
+
 trainer.train_agent(num_epochs= 50)
 wandb.finish()
