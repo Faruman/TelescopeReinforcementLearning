@@ -235,7 +235,7 @@ class SAC(object):
                 qf2_loss_value = torch.zeros(len(self.critic))
 
                 for critic_index in range(len(self.critic)):
-                    temp_filter = (shard_batch == critic_index).squeeze()
+                    temp_filter = shard_batch == critic_index
                     temp_state_batch = state_batch[temp_filter]
                     temp_action_batch = action_batch[temp_filter]
                     temp_reward_batch = reward_batch[temp_filter]
