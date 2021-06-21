@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 import wandb
+from glob import glob
 
 
 class SAC(object):
@@ -313,14 +314,29 @@ class SAC(object):
 
     # Load model parameters
     def load_model(self,
-                   actor_path,
-                   critic_paths,
-                   critic_q_transform_path):
+                   env_name,
+                   actor_path=None,
+                   critic_paths=None):
         """
+        :param env_name:
         :param actor_path:
         :param critic_path:
         :return:
         """
+
+        episode = None
+
+        if actor_path is None and critic_paths is None:
+            actor_path = self.config.env_rl['save_path'] + "/output/models/sac_actor_{}".format(env_name)
+            if episode == None:
+                actor_path_alternatives = glob(actor_path + "_episode_*")
+                actor_path_alternatives_episodes = [int(path.split("_")[-1]) for path in actor_path_alternatives]
+                episode = max(actor_path_alternatives_episodes)
+            actor_path += "_episode_" + str(episode)
+            critic_paths = self.config.env_rl['save_path'] + "/output/models/sac_critic_{}".format(env_name)
+            critic_paths = glob(critic_paths + "_episode_" + str(episode) + "_*")
+            critic_paths.sort(key=lambda x: int(x.split("_")[-1]))
+
         print('Loading models from {} and {}'.format(actor_path, critic_paths))
         if actor_path is not None:
             self.policy.load_state_dict(torch.load(actor_path))
@@ -328,3 +344,5 @@ class SAC(object):
         if critic_paths is not None:
             for i, critic_path in enumerate(critic_paths):
                 self.critic[i].load_state_dict(torch.load(critic_path))
+
+        return episode

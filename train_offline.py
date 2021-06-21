@@ -3,6 +3,7 @@ import os
 from collections import deque
 import numpy as np
 import torch
+import random
 from torch.utils.data import DataLoader, TensorDataset
 from rl_model.sac_ensemble_average_diverseBatches_sameDataset import SAC as AGENT
 #from rl_model.sac_ensemble_average_diverseBatches import SAC as AGENT
@@ -47,6 +48,7 @@ class Dataset(torch.utils.data.Dataset):
                 reward = reward.reshape((int(reward.shape[0] / 1000), 1000))
                 action = action.reshape((int(action.shape[0] / 1000), 1000, action.shape[1]))
 
+                # TODO: put to zero or remove them (check again)
                 commands_t1 = commands[:, 2:-1, :]
                 #commands_t1 = commands_t1.reshape((commands_t1.shape[0]*commands_t1.shape[1], commands_t1.shape[2]))
                 commands_t2 = commands[:, 1:-2, :]
@@ -57,14 +59,14 @@ class Dataset(torch.utils.data.Dataset):
                 measurements = measurements[:, 3:, :]
                 #measurements = measurements.reshape((measurements.shape[0] * measurements.shape[1], measurements.shape[2]))
 
-                state = np.stack((measurements, commands_t1, commands_t2, commands_t3), axis=2).reshape(measurements.shape[0], measurements.shape[1], measurements.shape[2] + commands_t1.shape[2] + commands_t2.shape[2] + commands_t3.shape[2])
+                state = np.stack((measurements, commands_t3, commands_t2, commands_t1), axis=2).reshape(measurements.shape[0], measurements.shape[1], measurements.shape[2] + commands_t1.shape[2] + commands_t2.shape[2] + commands_t3.shape[2])
                 #state = np.column_stack((measurements, commands_t1, commands_t2, commands_t3))
 
                 # shifted according to delay (2 timesteps)
-                action = action[:, 1:-3, :]
+                action = action[:, :-2, :]
                 action = action.reshape((action.shape[0] * action.shape[1], action.shape[2]))
 
-                reward = reward[:, 1:-3]
+                reward = reward[:,2:]
                 reward = reward.reshape((reward.shape[0] * reward.shape[1]))
 
                 next_state = state[:, 1:, :].reshape((state.shape[0] * (state.shape[1]-1), state.shape[2]))
@@ -95,6 +97,8 @@ class Dataset(torch.utils.data.Dataset):
             print(np.mean(np.row_stack([np.mean(x, axis= 0) for x in self.memmaps["state"]]), axis= 0))
             state_std = np.row_stack([np.mean(np.square(x - state_mean), axis=0) for x in self.memmaps["state"]])
             print(np.sqrt(np.mean(state_std, axis=0) / state_std.shape[0]))
+
+        # TODO: save the standardized data
 
         if data_per_shard:
             self.meta_index = np.random.choice(self.index[-1], size= int(self.index[-1] * number_of_shards * self.data_per_shard), replace=True)
@@ -155,15 +159,15 @@ class Config:
         self.sac['num_layers_actor'] = 2
         self.sac['size_ensemble'] = 5
         self.sac['batch_size'] = 256
-
+        self.sac['shuffle'] = True
         self.sac['updates_per_step'] = 1
 
         self.cuda = True
 
         self.env_rl = dict()
         self.env_rl['write_every'] = 1
-
         self.env_rl["save_path"] = "."
+        self.env_rl['seed'] = 42
 
 
 class TrainerOffline:
@@ -177,7 +181,8 @@ class TrainerOffline:
                  writer,
                  env_name,
                  raw_input = False,
-                 data_per_shard= False
+                 data_per_shard= False,
+                 reload_old = False
                  ):
         """
         replay_paths: list of replay paths
@@ -195,7 +200,7 @@ class TrainerOffline:
 
         self.train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                         batch_size=config.sac['batch_size'],
-                                                        shuffle=False)
+                                                        shuffle=config.sac['shuffle'])
 
         self.writer = writer
         self.config, self.experiment_name = config, experiment_name
@@ -210,6 +215,9 @@ class TrainerOffline:
 
         wandb.init(project='capstoneProject', entity='faruman')
         self.total_update = 0
+
+        if reload_old:
+            self.epoch = self.agent.load_model(self.env_name)
 
     def train_agent(self, num_epochs):
         """
@@ -271,14 +279,20 @@ class TrainerOffline:
             self.sac_info_dic['alpha'] = []
 
 
-exp_name = "rl_with_noise_5critics"
+exp_name = "10x10_rl"
 writ = SummaryWriter(exp_name)
 conf = Config()
+
+torch.manual_seed(conf.env_rl["seed"])
+random.seed(conf.env_rl["seed"])
+np.random.seed(conf.env_rl["seed"])
 
 # train model on data from the simple agent
 base_path = r"./data/"
 rep_paths = [
-            r"pure_dataset_4_pure_dataset_noise_mu_0_sigma_01_episode_1000",
+            r"replay_11_2m_fabian_noise_mu_0_sigma_05_episode_2000-001",
+            r"replay_11_2m_fabian_noise_mu_0_sigma_01_episode_2000-002",
+            r"replay_11_2m_fabian_noise_mu_0_sigma_03_episode_2000-003"
             ]
 rep_paths = [base_path + rep_path for rep_path in rep_paths]
 
@@ -287,9 +301,10 @@ trainer = TrainerOffline(replay_paths=rep_paths,
                          config=conf,
                          writer=writ,
                          env_name= "sac_ensemble_2m_{}".format(exp_name),
-                         raw_input= True,
-                         data_per_shard = False
+                         raw_input= False,
+                         data_per_shard = False,
+                         reload_old = True
                          )
 
-trainer.train_agent(num_epochs= 50)
+trainer.train_agent(num_epochs= 300)
 wandb.finish()
